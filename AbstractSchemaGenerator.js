@@ -11,28 +11,25 @@ var AbstractSchemaGenerator = module.exports = function () {
 };
 
 // A method for capitalizing the first letter of a string
-AbstractSchemaGenerator.prototype.capitalize = function (s) {
+AbstractSchemaGenerator.prototype._capitalize = function (s) {
    if (!s) return s;
    if (s.length === 1) return s.toUpperCase();
    return s[0].toUpperCase() + s.substring(1);
 }
 
 // A method used to generate a Swagger model definition for a controller
-AbstractSchemaGenerator.prototype.isIncluded = function (name, options) {
+AbstractSchemaGenerator.prototype._isIncluded = function (name, options) {
    if (options.select === false) {
       return false;
-   } else if (this.propertyFilter) {
-      return this.propertyFilter.isIncluded(name, options);
+   } else if (this._propertyFilter) {
+      return this._propertyFilter._isIncluded(name, options);
    } else {
       return true;
    }
 }
 
-AbstractSchemaGenerator.prototype.convertType = function (type) {
-
-   if (typeof type === "string") {
-      return type;
-   }
+AbstractSchemaGenerator.prototype._convertType = function (type) {
+   if (typeof type === "string") return type;
    if (type === String) return 'String';
    if (type === Number) return 'Number';
    if (type === Date) return 'Date';
@@ -40,10 +37,7 @@ AbstractSchemaGenerator.prototype.convertType = function (type) {
    if (type === mongoose.Schema.Types.ObjectId) return 'ObjectId';
    if (type === mongoose.Schema.Types.Oid) return 'Oid';
    if (type === Object) return "Embedded";
-   if (type instanceof Object && type.type) {
-      return this.swaggerTypeFor(type.type);
-   }
-
+   if (type instanceof Object && type.type) return this._swaggerTypeFor(type.type);
    if (type instanceof Object) return "Embedded";
    if (type === mongoose.Schema.Types.Mixed) return "Embedded";
    if (type === mongoose.Schema.Types.Buffer) return null;
@@ -52,18 +46,18 @@ AbstractSchemaGenerator.prototype.convertType = function (type) {
 }
 
 // Convert a Mongoose type into a Swagger type
-AbstractSchemaGenerator.prototype.swaggerTypeFor = function (type) {
+AbstractSchemaGenerator.prototype._swaggerTypeFor = function (type) {
    // type may be a Schema or an object with property type
    if (type === mongoose.Schema.Types.Array || Array.isArray(type)) {
       return {type:'Array'};
    } else if (type && type.type) {
-      return {type: this.convertType(type.type)};
+      return {type: this._convertType(type.type)};
    } else {
-      return {type: this.convertType(type)};
+      return {type: this._convertType(type)};
    }
 };
 
-AbstractSchemaGenerator.prototype.getEmbeddedName = function (name) {
+AbstractSchemaGenerator.prototype._getEmbeddedName = function (name) {
    var embeddedName
    var paths = name.split(".");
    if (paths.length > 1) {
@@ -73,11 +67,11 @@ AbstractSchemaGenerator.prototype.getEmbeddedName = function (name) {
 }
 
 // Convert a Mongoose type into a Swagger type
-AbstractSchemaGenerator.prototype.findEmbeddeds = function (schema) {
+AbstractSchemaGenerator.prototype._findEmbeddeds = function (schema) {
    var embeddeds = {};
    Object.keys(schema.paths).forEach(function (name) {
 
-      var embeddedName = this.getEmbeddedName(name);
+      var embeddedName = this._getEmbeddedName(name);
       if (embeddedName) {
          var embedded = embeddeds[embeddedName];
          if (embedded == null) {

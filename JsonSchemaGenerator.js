@@ -15,14 +15,14 @@ JsonSchemaGenerator.prototype = new AbstractSchemaGenerator();
 // A method used to generate a Swagger model definition for a Mongoose Schema
 JsonSchemaGenerator.prototype.generate = function (schema) {
    var definition = {};
-   definition.properties = this.generateProperties(schema);
-   definition.required = this.generateRequired(schema);
+   definition.properties = this._generateProperties(schema);
+   definition.required = this._generateRequired(schema);
    return definition;
 }
 
-JsonSchemaGenerator.prototype.generateProperty = function (path, schema) {
+JsonSchemaGenerator.prototype._generateProperty = function (path, schema) {
    var property = {};
-   var method = "generate" + this.swaggerTypeFor(path.options.type).type;
+   var method = "_generate" + this._swaggerTypeFor(path.options.type).type;
    if (typeof this[method] === "function") {
       property = this[method](path, schema);
    } else {
@@ -33,21 +33,21 @@ JsonSchemaGenerator.prototype.generateProperty = function (path, schema) {
    return property;
 };
 
-JsonSchemaGenerator.prototype.generateProperties = function (schema) {
+JsonSchemaGenerator.prototype._generateProperties = function (schema) {
    var properties = {};
    Object.keys(schema.paths).forEach(function (name) {
-      if (!this.getEmbeddedName(name) && this.isIncluded(name, schema.paths[name].options)) {
+      if (!this._getEmbeddedName(name) && this._isIncluded(name, schema.paths[name].options)) {
          // ignore 'private' fields
          if (name.indexOf('_') != 0) {
-            var property = this.generateProperty(schema.paths[name], schema);
+            var property = this._generateProperty(schema.paths[name], schema);
             properties[name] = property;
          }
       }
    }, this);
 
-   var embeddeds = this.findEmbeddeds(schema);
+   var embeddeds = this._findEmbeddeds(schema);
    for (var key in embeddeds) {
-      var property = this.generateEmbedded(embeddeds[key]);
+      var property = this._generateEmbedded(embeddeds[key]);
       if (property) {
          properties[key] = property;
       }
@@ -56,11 +56,11 @@ JsonSchemaGenerator.prototype.generateProperties = function (schema) {
    return properties;
 };
 
-JsonSchemaGenerator.prototype.generateRequired = function (schema) {
+JsonSchemaGenerator.prototype._generateRequired = function (schema) {
    var required = [];
    Object.keys(schema.paths).forEach(function (name) {
       // only add required for non-embedded paths
-      if (!this.getEmbeddedName(name)) {
+      if (!this._getEmbeddedName(name)) {
          if (schema.paths[name].isRequired === true) {
             required.push(schema.paths[name].path);
          }
@@ -69,7 +69,7 @@ JsonSchemaGenerator.prototype.generateRequired = function (schema) {
    return required.length == 0 ? undefined : required;
 }
 
-JsonSchemaGenerator.prototype.generateString = function (path, schema) {
+JsonSchemaGenerator.prototype._generateString = function (path, schema) {
    var property = {};
    property.type = "string";
    if (path.options.enum) {
@@ -78,19 +78,19 @@ JsonSchemaGenerator.prototype.generateString = function (path, schema) {
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateDate = function (path, schema) {
+JsonSchemaGenerator.prototype._generateDate = function (path, schema) {
    var property = {};
    property.type = "string";
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateBoolean = function (path, schema) {
+JsonSchemaGenerator.prototype._generateBoolean = function (path, schema) {
    var property = {};
    property.type = "boolean";
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateNumber = function (path, schema) {
+JsonSchemaGenerator.prototype._generateNumber = function (path, schema) {
    var property = {};
    property.type = "number";
    if (path.options.min) {
@@ -102,17 +102,17 @@ JsonSchemaGenerator.prototype.generateNumber = function (path, schema) {
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateArray = function (path, schema) {
+JsonSchemaGenerator.prototype._generateArray = function (path, schema) {
    var property = {};
    property.type = "array";
-   var method = "generateType" + this.swaggerTypeFor(path.options.type[0]).type;
+   var method = "_generateType" + this._swaggerTypeFor(path.options.type[0]).type;
    if (typeof this[method] === "function") {
       property.items = this[method](path);
    }
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateEmbedded = function (embedded) {
+JsonSchemaGenerator.prototype._generateEmbedded = function (embedded) {
    var property = {};
    var schema = {paths: {}};
    if (Array.isArray(embedded)) {
@@ -121,12 +121,12 @@ JsonSchemaGenerator.prototype.generateEmbedded = function (embedded) {
       });
    }
    property.type = "object";
-   property.required = this.generateRequired(schema);
-   property.properties = this.generateProperties(schema);
+   property.required = this._generateRequired(schema);
+   property.properties = this._generateProperties(schema);
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateObjectId = function (path, schema) {
+JsonSchemaGenerator.prototype._generateObjectId = function (path, schema) {
    var property = {};
    if (path.options && path.options.ref) {
       property.$ref = "#/definitions/" + path.options.ref;
@@ -136,17 +136,17 @@ JsonSchemaGenerator.prototype.generateObjectId = function (path, schema) {
    return property;
 }
 
-JsonSchemaGenerator.prototype.generateTypeObjectId = function (path) {
+JsonSchemaGenerator.prototype._generateTypeObjectId = function (path) {
    return {'$ref': "#/definitions/" + path.options.type[0].ref};
 }
 
-JsonSchemaGenerator.prototype.generateTypeString = function (path) {
+JsonSchemaGenerator.prototype._generateTypeString = function (path) {
    return {type: "string"};
 }
 
-JsonSchemaGenerator.prototype.generateTypeEmbedded = function (path) {
+JsonSchemaGenerator.prototype._generateTypeEmbedded = function (path) {
    var schema = this.generate(path.schema);
    schema.type = "object";
-   schema.required = this.generateRequired(path.schema);
+   schema.required = this._generateRequired(path.schema);
    return schema;
 }
