@@ -21,11 +21,11 @@ JsonSchemaGenerator.prototype.generate = function (schema, id, objectRefs) {
     return definition;
 };
 
-JsonSchemaGenerator.prototype._generateProperty = function (path, schema) {
+JsonSchemaGenerator.prototype._generateProperty = function (path, schema, prefix, objectRefs) {
     var property = {};
     var method = "_generate" + this._swaggerTypeFor(path.options.type).type;
     if (typeof this[method] === "function") {
-        property = this[method](path, schema);
+        property = this[method](path, schema, prefix, objectRefs);
     } else {
         // if no properties then it is Mixed or Buffered,
         property.type = "object";
@@ -40,7 +40,7 @@ JsonSchemaGenerator.prototype._generateProperties = function (schema, prefix, ob
         if (!this._getEmbeddedName(name) && this._isIncluded(name, schema.paths[name].options)) {
             // ignore 'private' fields
             if (name.indexOf('_') != 0) {
-                var property = this._generateProperty(schema.paths[name], schema);
+                var property = this._generateProperty(schema.paths[name], schema, prefix, objectRefs);
                 properties[name] = property;
             }
         }
@@ -147,12 +147,12 @@ JsonSchemaGenerator.prototype._generateNumber = function (path, schema) {
     return property;
 }
 
-JsonSchemaGenerator.prototype._generateArray = function (path, schema) {
+JsonSchemaGenerator.prototype._generateArray = function (path, schema, prefix, objectRefs) {
     var property = {};
     property.type = "array";
     var method = "_generateType" + this._swaggerTypeFor(path.options.type[0]).type;
     if (typeof this[method] === "function") {
-        property.items = this[method](path);
+        property.items = this[method](path, schema, prefix, objectRefs);
     }
     return property;
 }
@@ -195,9 +195,17 @@ JsonSchemaGenerator.prototype._generateTypeString = function (path) {
     return {type: "string"};
 }
 
-JsonSchemaGenerator.prototype._generateTypeEmbedded = function (path) {
-    var schema = this.generate(path.schema);
-    schema.type = "object";
-    schema.required = this._generateRequired(path.schema);
-    return schema;
+JsonSchemaGenerator.prototype._generateTypeEmbedded = function (path, schema, prefix, objectRefs) {
+    var _key = (prefix || '') + '_' + path.path;
+    var _schema = this.generate(path.schema, _key, objectRefs);
+    if (!objectRefs) {
+        _schema.type = "object";
+    }
+    _schema.required = this._generateRequired(path.schema);
+    if (!objectRefs) {
+        return _schema;
+    } else {
+        objectRefs[_key] = _schema;
+        return {'$ref': _key};
+    }
 }
